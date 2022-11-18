@@ -21,6 +21,28 @@ const appointmentCollection = client.db("doc_port_db").collection("appointment_s
 const bookingCollection = client.db('doc_port_db').collection("bookings")
 const userCollection = client.db('doc_port_db').collection("users")
 
+
+//middleware to verify token
+const verifyJwt = async (req,res,next)=>{
+    const token = req.headers.authorization;
+    if(!token){
+        return res.status(401).send({message:'UnAuthorized User'})
+    }
+    try{
+        jwt.verify(token,process.env.TOKEN,(err,decoded)=>{
+            if(err){
+                return res.status(403).send({message:'Invalid User'})
+            }
+            req.user = decoded;
+            next()
+        })
+    }
+    catch(e){
+        console.log(e.name,e.message)
+    }
+}
+
+
 async function run(){
     try{
         app.get('/appointmentOptions', async(req,res)=>{
@@ -45,7 +67,7 @@ async function run(){
             })
         })
 
-        app.get('/bookings', async(req,res)=>{
+        app.get('/bookings',verifyJwt, async(req,res)=>{
             const email = req.query.email;
             const query = {email:email}
             const bookings = await bookingCollection.find(query).toArray();
